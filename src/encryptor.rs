@@ -17,11 +17,11 @@ pub struct Aes128GcmStreamEncryptor {
 }
 
 impl Aes128GcmStreamEncryptor {
-    pub fn new(key: [u8; 16]) -> Self {
+    pub fn new(key: [u8; 16], nonce: &[u8]) -> Self {
         let key = GenericArray::from(key);
         let aes = Aes128::new(&key);
 
-        Self {
+        let mut s = Self {
             crypto: aes,
             message_buffer: vec![],
             integrality_buffer: vec![],
@@ -31,14 +31,12 @@ impl Aes128GcmStreamEncryptor {
             encryption_nonce: 0,
             adata_len: 0,
             message_len: 0,
-        }
-    }
-
-    pub fn init_nonce(&mut self, nonce: &[u8]) {
-        let (ghash_key, normalized_nonce) = self.normalize_nonce(nonce);
-        self.ghash_key = ghash_key;
-        self.init_nonce = normalized_nonce;
-        self.encryption_nonce = normalized_nonce;
+        };
+        let (ghash_key, normalized_nonce) = s.normalize_nonce(nonce);
+        s.ghash_key = ghash_key;
+        s.init_nonce = normalized_nonce;
+        s.encryption_nonce = normalized_nonce;
+        s
     }
 
     pub fn init_adata(&mut self, adata: &[u8]) {
@@ -78,7 +76,7 @@ impl Aes128GcmStreamEncryptor {
     }
 
     pub fn finalize(&mut self) -> (Vec<u8>, Vec<u8>) {
-        let mut encrypted_message = vec![];
+        let mut encrypted_message = Vec::with_capacity(16);
         if !self.message_buffer.is_empty() {
             // last block and this block len is less than 128 bits
             self.encryption_nonce = inc_32(self.encryption_nonce);
