@@ -1,0 +1,11 @@
+[package]
+name = "aes-gcm-stream"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aes = { version = "0.8.3", features = ["zeroize"] }
+aes-gcm = { version = "0.10.2", features = ["zeroize"] }
+hex = "0.4.3"
