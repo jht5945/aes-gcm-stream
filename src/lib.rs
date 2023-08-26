@@ -137,24 +137,27 @@ impl Aes128GcmStreamEncryptor {
 
     fn normalize_nonce(&mut self, nonce_bytes: &[u8]) -> (u128, u128) {
         let ghash_key = self.ghash_key();
-        let nonce = u8to128(nonce_bytes);
-        let normalized_nonce = match nonce_bytes.len() == 12 {
-            true => {
-                nonce << 32 | 0x00000001
-            }
-            false => {
-                let mut iv_padding = vec![];
-                // s = 128[len(iv) / 128] - len(iv)
-                let s = 128 * (((nonce_bytes.len() * 8) + 128 - 1) / 128) - (nonce_bytes.len() * 8);
-                iv_padding.push(nonce << s);
-                iv_padding.push((nonce_bytes.len() * 8) as u128);
-                ghash(ghash_key, &iv_padding)
-            }
-        };
-        (ghash_key, normalized_nonce)
+        normalize_nonce(ghash_key, nonce_bytes)
     }
 }
 
+fn normalize_nonce(ghash_key: u128, nonce_bytes: &[u8]) -> (u128, u128) {
+    let nonce = u8to128(nonce_bytes);
+    let normalized_nonce = match nonce_bytes.len() == 12 {
+        true => {
+            nonce << 32 | 0x00000001
+        }
+        false => {
+            let mut iv_padding = vec![];
+            // s = 128[len(iv) / 128] - len(iv)
+            let s = 128 * (((nonce_bytes.len() * 8) + 128 - 1) / 128) - (nonce_bytes.len() * 8);
+            iv_padding.push(nonce << s);
+            iv_padding.push((nonce_bytes.len() * 8) as u128);
+            ghash(ghash_key, &iv_padding)
+        }
+    };
+    (ghash_key, normalized_nonce)
+}
 
 // R = 11100001 || 0(120)
 const R: u128 = 0b11100001 << 120;
