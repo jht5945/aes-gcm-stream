@@ -1,11 +1,18 @@
-use aes::Aes128;
+use aes::{Aes128, Aes192, Aes256};
 use aes::cipher::{Block, BlockEncrypt, KeyInit};
 use aes::cipher::generic_array::GenericArray;
 
 use crate::util::{gmul_128, inc_32, msb_s, normalize_nonce, u8to128};
 
-pub struct Aes128GcmStreamDecryptor {
-    crypto: Aes128,
+macro_rules! define_aes_gcm_stream_decryptor_impl {
+    (
+        $module:tt,
+        $aesn:tt,
+        $key_size:tt
+    ) => {
+
+pub struct $module {
+    crypto: $aesn,
     message_buffer: Vec<u8>,
     integrality_buffer: Vec<u8>,
     ghash_key: u128,
@@ -16,10 +23,10 @@ pub struct Aes128GcmStreamDecryptor {
     message_len: usize,
 }
 
-impl Aes128GcmStreamDecryptor {
-    pub fn new(key: [u8; 16], nonce: &[u8]) -> Self {
+impl $module {
+    pub fn new(key: [u8; $key_size], nonce: &[u8]) -> Self {
         let key = GenericArray::from(key);
-        let aes = Aes128::new(&key);
+        let aes = $aesn::new(&key);
 
         let mut s = Self {
             crypto: aes,
@@ -60,7 +67,7 @@ impl Aes128GcmStreamDecryptor {
         for i in 0..blocks_count {
             self.encryption_nonce = inc_32(self.encryption_nonce);
             let mut ctr = self.encryption_nonce.to_be_bytes();
-            let block = Block::<Aes128>::from_mut_slice(&mut ctr);
+            let block = Block::<$aesn>::from_mut_slice(&mut ctr);
             self.crypto.encrypt_block(block);
             let chunk = &message_buffer_slice[i * 16..(i + 1) * 16];
             let y = u8to128(chunk) ^ u8to128(&block.as_slice());
@@ -115,7 +122,7 @@ impl Aes128GcmStreamDecryptor {
 
     fn calculate_tag(&mut self) -> Vec<u8> {
         let mut bs = self.init_nonce.to_be_bytes().clone();
-        let block = Block::<Aes128>::from_mut_slice(&mut bs);
+        let block = Block::<$aesn>::from_mut_slice(&mut bs);
         self.crypto.encrypt_block(block);
         let tag_trunk = self.ghash_val.to_be_bytes();
         let y = u8to128(&tag_trunk) ^ u8to128(&block.as_slice());
@@ -137,7 +144,7 @@ impl Aes128GcmStreamDecryptor {
 
     fn ghash_key(&mut self) -> u128 {
         let mut block = [0u8; 16];
-        let block = Block::<Aes128>::from_mut_slice(&mut block);
+        let block = Block::<$aesn>::from_mut_slice(&mut block);
         self.crypto.encrypt_block(block);
         u8to128(&block.as_slice())
     }
@@ -147,3 +154,9 @@ impl Aes128GcmStreamDecryptor {
         normalize_nonce(ghash_key, nonce_bytes)
     }
 }
+    }
+}
+
+define_aes_gcm_stream_decryptor_impl!(Aes128GcmStreamDecryptor, Aes128, 16);
+define_aes_gcm_stream_decryptor_impl!(Aes192GcmStreamDecryptor, Aes192, 24);
+define_aes_gcm_stream_decryptor_impl!(Aes256GcmStreamDecryptor, Aes256, 32);
