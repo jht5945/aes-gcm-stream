@@ -2,7 +2,8 @@ use aes::Aes128;
 use aes::cipher::{Block, BlockEncrypt, KeyInit};
 use aes::cipher::generic_array::GenericArray;
 use aes_gcm::{AeadInPlace, Aes128Gcm, Key};
-use aes_gcm::aead::{Aead, AeadMutInPlace, Nonce};
+use aes_gcm::aead::{Aead, Nonce};
+use aes_gcm_stream::Aes128GcmStream;
 
 pub struct GCM {
     aes: Aes128,
@@ -132,6 +133,7 @@ impl GCM {
         let adata_len = adata.len() * 8;
         let u = 128 * ((message_len + 128 - 1) / 128) - message_len;
         let v = 128 * ((adata_len + 128 - 1) / 128) - adata_len;
+        // println!("message_len, adata_len: {}, {}", message.len(), adata.len());
         // println!("u, v: {}, {}", u, v);
         // println!("j0 = {:02x?}", j0);
         let enc = self.gctr(inc_32(j0), &message);
@@ -145,7 +147,7 @@ impl GCM {
         bit_string.extend_from_slice(&(message_len as u64).to_be_bytes());
         // println!("len = {}, bit_string[u8] = {:02x?}", bit_string.len(), bit_string);
         let bit_string: Vec<u128> = bit_string.chunks(16).map(|it| u8to128(it)).collect();
-        //  println!("bit_string[u128] = {:02x?}", bit_string);
+        // println!("bit_string[u128] = {:02x?}", bit_string);
         let s = ghash(ghash_key, &bit_string).to_be_bytes();
         //println!("{:02x?}", s);
         let tag = self.gctr(j0, &s);
@@ -159,12 +161,12 @@ impl GCM {
 fn main() {
     let key = [0u8; 16];
     let nonce = [0u8; 12];
-    let plaintext = [0u8; 64];
+    let plaintext = [0u8; 69];
     let mut gcm = GCM::new(key);
     let (tag, enc) = gcm.ae(&nonce, &[], &plaintext);
 
     println!("{}", hex::encode(&enc));
-    println!("{}", hex::encode(&tag));
+    println!("{} : TAG", hex::encode(&tag));
 
     // ---------------------------------------------------------------------------------------
 
@@ -184,9 +186,22 @@ fn main() {
     let mut ciphertext = vec![0u8; plaintext.len()];
     let tag = cipher.encrypt_in_place_detached(&nonce, &[], ciphertext.as_mut_slice()).unwrap();
     println!("{}", hex::encode(&ciphertext));
-    println!("{}", hex::encode(tag.as_slice()));
+    println!("{} : TAG", hex::encode(tag.as_slice()));
 
     let mut ciphertext = plaintext.to_vec();
     cipher.encrypt_in_place(&nonce, &[], &mut ciphertext).unwrap();
     println!("{}", hex::encode(ciphertext.as_slice()));
+
+    let mut aes128_gcm_stream = Aes128GcmStream::new([0; 16]);
+    aes128_gcm_stream.init_nonce(&[0u8; 12]);
+    aes128_gcm_stream.init_adata(&[]);
+    let o1 = aes128_gcm_stream.next(&plaintext[0..21]);
+    let o2 = aes128_gcm_stream.next(&plaintext[21..64]);
+    let o3 = aes128_gcm_stream.next(&[0; 5]);
+    let (o4, t) = aes128_gcm_stream.finalize();
+    println!("{}: E1", hex::encode(&o1));
+    println!("{}: E2", hex::encode(&o2));
+    println!("{}: E3", hex::encode(&o3));
+    println!("{}: E4", hex::encode(&o4));
+    println!("{} : TAG", hex::encode(&t));
 }
