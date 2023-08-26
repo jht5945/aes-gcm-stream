@@ -2,7 +2,7 @@ use aes::cipher::KeyInit;
 use aes_gcm::{AeadInPlace, Aes128Gcm, Key};
 use aes_gcm::aead::{Aead, Nonce};
 
-use aes_gcm_stream::Aes128GcmStream;
+use aes_gcm_stream::Aes128GcmStreamEncryptor;
 
 use crate::copied::GCM;
 
@@ -42,7 +42,7 @@ fn main() {
     cipher.encrypt_in_place(&nonce, &[], &mut ciphertext).unwrap();
     println!("{}", hex::encode(ciphertext.as_slice()));
 
-    let mut aes128_gcm_stream = Aes128GcmStream::new([0; 16]);
+    let mut aes128_gcm_stream = Aes128GcmStreamEncryptor::new([0; 16]);
     aes128_gcm_stream.init_nonce(&[0u8; 12]);
     aes128_gcm_stream.init_adata(&[]);
     let o1 = aes128_gcm_stream.next(&plaintext[0..21]);

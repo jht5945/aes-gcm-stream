@@ -2,7 +2,7 @@ use aes::Aes128;
 use aes::cipher::{Block, BlockEncrypt, KeyInit};
 use aes::cipher::generic_array::GenericArray;
 
-pub struct Aes128GcmStream {
+pub struct Aes128GcmStreamEncryptor {
     crypto: Aes128,
     message_buffer: Vec<u8>,
     integrality_buffer: Vec<u8>,
@@ -14,7 +14,7 @@ pub struct Aes128GcmStream {
     message_len: usize,
 }
 
-impl Aes128GcmStream {
+impl Aes128GcmStreamEncryptor {
     pub fn new(key: [u8; 16]) -> Self {
         let key = GenericArray::from(key);
         let aes = Aes128::new(&key);
@@ -119,12 +119,12 @@ impl Aes128GcmStream {
         let integrality_buffer_slice = self.integrality_buffer.as_slice();
         let integrality_buffer_slice_len = integrality_buffer_slice.len();
         if integrality_buffer_slice_len >= 16 {
-            let i_blocks_count = integrality_buffer_slice_len / 16;
-            for i in 0..i_blocks_count {
+            let blocks_count = integrality_buffer_slice_len / 16;
+            for i in 0..blocks_count {
                 let buf = &integrality_buffer_slice[i * 16..(i + 1) * 16];
                 self.ghash_val = gmul_128(self.ghash_val ^ u8to128(buf), self.ghash_key)
             }
-            self.integrality_buffer = integrality_buffer_slice[i_blocks_count * 16..].to_vec();
+            self.integrality_buffer = integrality_buffer_slice[blocks_count * 16..].to_vec();
         }
     }
 
