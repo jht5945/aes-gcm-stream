@@ -4,19 +4,8 @@ use aes_gcm::aead::{Aead, Nonce};
 
 use aes_gcm_stream::{Aes128GcmStreamDecryptor, Aes128GcmStreamEncryptor};
 
-use crate::copied::GCM;
-
-mod copied;
-
 fn main() {
-    let key = [0u8; 16];
-    let nonce = [0u8; 12];
     let plaintext = [0u8; 69];
-    let mut gcm = GCM::new(key);
-    let (tag, enc) = gcm.ae(&nonce, &[], &plaintext);
-
-    println!("{}", hex::encode(&enc));
-    println!("{} : TAG", hex::encode(&tag));
 
     // ---------------------------------------------------------------------------------------
 
@@ -47,12 +36,12 @@ fn main() {
     let o1 = aes128_gcm_stream_encryptor.next(&plaintext[0..21]);
     let o2 = aes128_gcm_stream_encryptor.next(&plaintext[21..64]);
     let o3 = aes128_gcm_stream_encryptor.next(&[0; 5]);
-    let (o4, t) = aes128_gcm_stream_encryptor.finalize();
+    let (o4, tag) = aes128_gcm_stream_encryptor.finalize();
     println!("{}: E1", hex::encode(&o1));
     println!("{}: E2", hex::encode(&o2));
     println!("{}: E3", hex::encode(&o3));
     println!("{}: E4", hex::encode(&o4));
-    println!("{} : TAG", hex::encode(&t));
+    println!("{} : TAG", hex::encode(&tag));
 
     let mut aes128_gcm_stream_decryptor = Aes128GcmStreamDecryptor::new([0; 16], &[0u8; 12]);
     let o1 = aes128_gcm_stream_decryptor.next(&hex::decode("0388dace60b6a392f328c2b971b2fe78f795aaab494b5923f7fd89ff948bc1e0200211214e7394da2089b6acd093abe0c94da219118e297d7b7ebcbcc9c388f28ade7d85a8c992f32a52151e1c2adceb7c6138e042").unwrap());
