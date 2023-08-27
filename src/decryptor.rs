@@ -115,8 +115,8 @@ impl $module {
         let message_tag = &self.message_buffer[message_buffer_len - 16..];
 
         if message_tag != tag.as_slice() {
-            Err(format!("Tag mismatch, expected: {}, actual: {}",
-                        hex::encode(&tag), hex::encode(message_tag)))
+            Err(format!("Tag mismatch, expected: {:2x}, actual: {:2x}",
+                        u8to128(&tag), u8to128(message_tag)))
         } else {
             Ok(plaintext_message)
         }
