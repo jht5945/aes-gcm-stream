@@ -1,5 +1,7 @@
 # aes-gcm-stream
 
+[Document](https://docs.rs/aes-gcm-stream/)
+
 ## Encrypt
 
 ```rust
