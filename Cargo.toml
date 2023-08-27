@@ -7,5 +7,8 @@ edition = "2021"
 
 [dependencies]
 aes = { version = "0.8.3", features = ["zeroize"] }
-aes-gcm = { version = "0.10.2", features = ["zeroize"] }
 hex = "0.4.3"
+zeroize = { version = "1.6.0", features = ["zeroize_derive"] }
+
+[dev-dependencies]
+aes-gcm = { version = "0.10.2", features = ["zeroize"] }

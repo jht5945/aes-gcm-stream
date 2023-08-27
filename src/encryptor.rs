@@ -1,6 +1,7 @@
 use aes::{Aes128, Aes192, Aes256};
 use aes::cipher::{Block, BlockEncrypt, KeyInit};
 use aes::cipher::generic_array::GenericArray;
+use zeroize::ZeroizeOnDrop;
 
 use crate::util::{gmul_128, inc_32, msb_s, normalize_nonce, u8to128};
 
@@ -11,6 +12,7 @@ macro_rules! define_aes_gcm_stream_encryptor_impl {
         $key_size:tt
     ) => {
 
+#[derive(ZeroizeOnDrop)]
 pub struct $module {
     crypto: $aesn,
     message_buffer: Vec<u8>,
@@ -55,7 +57,7 @@ impl $module {
         self.integrality_buffer.extend_from_slice(&vec![0x00; v / 8]);
     }
 
-    pub fn next(&mut self, bytes: &[u8]) -> Vec<u8> {
+    pub fn update(&mut self, bytes: &[u8]) -> Vec<u8> {
         self.message_buffer.extend_from_slice(bytes);
         let message_buffer_slice = self.message_buffer.as_slice();
         let message_buffer_len = message_buffer_slice.len();

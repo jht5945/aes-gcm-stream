@@ -19,8 +19,8 @@ pub(crate) fn gmul_128(x: u128, y: u128) -> u128 {
 
 pub(crate) fn ghash(key: u128, messages: &[u128]) -> u128 {
     let mut y = 0u128;
-    for i in 0..messages.len() {
-        let yi = gmul_128(y ^ messages[i], key);
+    for message in messages {
+        let yi = gmul_128(y ^ message, key);
         y = yi;
     }
     y
@@ -54,9 +54,7 @@ pub(crate) fn msb_s(s: usize, bytes: &[u8]) -> Vec<u8> {
     let mut result = vec![];
     let n = s / 8;
     let remain = s % 8;
-    for i in 0..n {
-        result.push(bytes[i]);
-    }
+    result.extend_from_slice(&bytes[0..n]);
     if remain > 0 {
         result.push(bytes[n] >> (8 - remain));
     }
