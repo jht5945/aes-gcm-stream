@@ -1,4 +1,15 @@
-// ----------------------------------------
+/// This library is created for AES/GCM stream encrypt or decrypt
+///
+/// Structs for encryption:
+/// * Aes128GcmStreamEncryptor
+/// * Aes192GcmStreamEncryptor
+/// * Aes256GcmStreamEncryptor
+///
+/// Structs for decryption:
+/// * Aes128GcmStreamDecryptor
+/// * Aes192GcmStreamDecryptor
+/// * Aes256GcmStreamDecryptor
+
 pub use decryptor::Aes128GcmStreamDecryptor;
 pub use decryptor::Aes192GcmStreamDecryptor;
 pub use decryptor::Aes256GcmStreamDecryptor;
