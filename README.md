@@ -3,24 +3,26 @@
 ## Encrypt
 
 ```rust
-    // IMPORTANT! key and nonce SHOULD generate by random
-    let mut key = [0u8; 32];
-    let mut nonce = [0; 12];
+// IMPORTANT! key and nonce SHOULD generate by random
+let mut key = [0u8; 32];
+let mut nonce = [0; 12];
 
-    let mut encryptor = Aes256GcmStreamEncryptor::new(key.clone(), &nonce);
+let mut encryptor = Aes256GcmStreamEncryptor::new(key.clone(), &nonce);
 
-    let mut ciphertext = vec![];
-    ciphertext.extend_from_slice(&encryptor.update(b"Hello "));
-    ciphertext.extend_from_slice(&encryptor.update(b" World"));
-    ciphertext.extend_from_slice(&encryptor.update(b"!"));
-    let (last_block, tag) = encryptor.finalize();
-    ciphertext.extend_from_slice(&last_block);
-    ciphertext.extend_from_slice(&tag);
+let mut ciphertext = vec![];
+ciphertext.extend_from_slice(&encryptor.update(b"Hello "));
+ciphertext.extend_from_slice(&encryptor.update(b" World"));
+ciphertext.extend_from_slice(&encryptor.update(b"!"));
+let (last_block, tag) = encryptor.finalize();
+ciphertext.extend_from_slice(&last_block);
+ciphertext.extend_from_slice(&tag);
 
-    println!("Ciphertext: {}", hex::encode(&ciphertext));
+println!("Ciphertext: {}", hex::encode(&ciphertext));
 ```
 
 ## Run Example
+
+Open example: [encrypt_and_decrypt.rs](https://git.hatter.ink/hatter/aes-gcm-stream/src/branch/main/examples/encrypt_and_decrypt.rs)
 
 ```shell
 $ cargo run --example encrypt_and_decrypt
