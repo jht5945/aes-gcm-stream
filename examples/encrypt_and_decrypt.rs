@@ -1,8 +1,7 @@
-# aes-gcm-stream
+use aes_gcm_stream::{Aes256GcmStreamDecryptor, Aes256GcmStreamEncryptor};
+use zeroize::Zeroize;
 
-## Encrypt
-
-```rust
+fn main() {
     // IMPORTANT! key and nonce SHOULD generate by random
     let mut key = [0u8; 32];
     let mut nonce = [0; 12];
@@ -18,17 +17,14 @@
     ciphertext.extend_from_slice(&tag);
 
     println!("Ciphertext: {}", hex::encode(&ciphertext));
-```
 
-## Run Example
+    let mut decryptor = Aes256GcmStreamDecryptor::new(key.clone(), &nonce);
 
-```shell
-$ cargo run --example encrypt_and_decrypt
-    Finished dev [unoptimized + debuginfo] target(s) in 0.10s
-     Running `target/debug/examples/encrypt_and_decrypt`
-Ciphertext: 86c22c5122404b39683ca9b79b889fd00a6212d1be2ebc3f4f8f22f90b
-Plaintext: Hello  World!
-```
+    let mut plaintext = vec![];
+    plaintext.extend_from_slice(decryptor.update(&ciphertext).as_slice());
+    plaintext.extend_from_slice(&decryptor.finalize().expect("decrypt error"));
 
-
-> Thanks: https://developer.aliyun.com/article/952809
+    println!("Plaintext: {}", String::from_utf8_lossy(&plaintext));
+    key.zeroize();
+    nonce.zeroize();
+}

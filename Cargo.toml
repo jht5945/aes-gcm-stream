@@ -12,3 +12,4 @@ zeroize = { version = "1.6.0", features = ["zeroize_derive"] }
 
 [dev-dependencies]
 aes-gcm = { version = "0.10.2", features = ["zeroize"] }
+benchmark-simple = "0.1.8"

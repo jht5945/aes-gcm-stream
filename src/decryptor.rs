@@ -62,7 +62,7 @@ impl $module {
         let message_buffer_slice = self.message_buffer.as_slice();
         let message_buffer_len = message_buffer_slice.len();
         if message_buffer_len < 32 {
-            return vec![];
+            return Vec::with_capacity(0);
         }
         let blocks_count = (message_buffer_len / 16) - 1;
         let mut plaintext_message = Vec::with_capacity(blocks_count * 16);
@@ -91,7 +91,7 @@ impl $module {
             // last block and this block len is less than 128 bits
             self.encryption_nonce = inc_32(self.encryption_nonce);
             let mut ctr = self.encryption_nonce.to_be_bytes();
-            let block = Block::<Aes128>::from_mut_slice(&mut ctr);
+            let block = Block::<$aesn>::from_mut_slice(&mut ctr);
             self.crypto.encrypt_block(block);
 
             let chunk = &self.message_buffer[0..message_buffer_len - 16];

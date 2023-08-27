@@ -44,6 +44,7 @@ pub(crate) fn normalize_nonce(ghash_key: u128, nonce_bytes: &[u8]) -> (u128, u12
     (ghash_key, normalized_nonce)
 }
 
+#[inline]
 pub(crate) fn u8to128(bytes: &[u8]) -> u128 {
     bytes.iter().rev().enumerate().fold(0, |acc, (i, &byte)| {
         acc | (byte as u128) << (i * 8)
@@ -62,6 +63,7 @@ pub(crate) fn msb_s(s: usize, bytes: &[u8]) -> Vec<u8> {
 }
 
 // incs(X)=MSBlen(X)-s(X) || [int(LSBs(X))+1 mod 2^s]s
+#[inline]
 pub(crate) fn inc_32(bits: u128) -> u128 {
     let msb = bits >> 32;
     let mut lsb = (bits & 0xffffffff) as u32;
