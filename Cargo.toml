@@ -1,6 +1,6 @@
 [package]
 name = "aes-gcm-stream"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Hatter Jiang"]
 repository = "https://git.hatter.ink/hatter/aes-gcm-stream"
@@ -13,9 +13,12 @@ categories = ["cryptography"]
 
 [dependencies]
 aes = { version = "0.8.3", features = ["zeroize"] }
+ghash = "0.5.0"
 zeroize = { version = "1.6.0", features = ["zeroize_derive"] }
 
-[dev-dependencies]
 hex = "0.4.3"
+
+[dev-dependencies]
+#hex = "0.4.3"
 aes-gcm = { version = "0.10.2", features = ["zeroize"] }
 benchmark-simple = "0.1.8"

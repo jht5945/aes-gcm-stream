@@ -2,7 +2,7 @@ use aes_gcm::{Aes256Gcm, KeyInit};
 use aes_gcm::aead::{Aead, Nonce};
 use benchmark_simple::{Bench, Options};
 
-use aes_gcm_stream::{Aes128GcmStreamEncryptor, Aes192GcmStreamEncryptor, Aes256GcmStreamEncryptor};
+use aes_gcm_stream::{Aes128GcmStreamEncryptor, Aes192GcmStreamEncryptor, Aes256GcmStreamEncryptor, Aes256GcmStreamEncryptor2};
 
 fn test_aes128_encrypt(m: &mut [u8]) {
     let key = [0u8; 16];
@@ -25,7 +25,7 @@ fn test_aes192_encrypt(m: &mut [u8]) {
 fn test_aes256_encrypt(m: &mut [u8]) {
     let key = [0u8; 32];
     let nonce = [0u8; 12];
-    let mut encryptor = Aes256GcmStreamEncryptor::new(key, &nonce);
+    let mut encryptor = Aes256GcmStreamEncryptor2::new(key, &nonce);
 
     encryptor.update(m);
     encryptor.finalize();
@@ -55,11 +55,11 @@ fn main() {
         ..Default::default()
     };
 
-    let res = bench.run(options, || test_aes128_encrypt(&mut m));
-    println!("AES128 encrypt         : {}", res.throughput(m.len() as _));
-
-    let res = bench.run(options, || test_aes192_encrypt(&mut m));
-    println!("AES192 encrypt         : {}", res.throughput(m.len() as _));
+    // let res = bench.run(options, || test_aes128_encrypt(&mut m));
+    // println!("AES128 encrypt         : {}", res.throughput(m.len() as _));
+    //
+    // let res = bench.run(options, || test_aes192_encrypt(&mut m));
+    // println!("AES192 encrypt         : {}", res.throughput(m.len() as _));
 
     let res = bench.run(options, || test_aes256_encrypt(&mut m));
     println!("AES256 encrypt         : {}", res.throughput(m.len() as _));

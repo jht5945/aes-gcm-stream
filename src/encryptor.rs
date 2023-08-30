@@ -66,11 +66,21 @@ impl $module {
         }
         let blocks_count = message_buffer_len / 16;
         let mut encrypted_message = Vec::with_capacity(blocks_count * 16);
-        for i in 0..blocks_count {
+        let mut blocks = Vec::with_capacity(blocks_count);
+        for _ in 0..blocks_count {
             self.encryption_nonce = inc_32(self.encryption_nonce);
-            let mut ctr = self.encryption_nonce.to_be_bytes();
-            let block = Block::<$aesn>::from_mut_slice(&mut ctr);
-            self.crypto.encrypt_block(block);
+            let ctr = self.encryption_nonce.to_be_bytes();
+            let block = Block::<$aesn>::clone_from_slice(&ctr);
+            blocks.push(block);
+        }
+        // println!("block site: {}", blocks.len());
+            self.crypto.encrypt_blocks(&mut blocks);
+        for i in 0..blocks_count {
+            // self.encryption_nonce = inc_32(self.encryption_nonce);
+            // let mut ctr = self.encryption_nonce.to_be_bytes();
+            // let block = Block::<$aesn>::from_mut_slice(&mut ctr);
+            // self.crypto.encrypt_block(block);
+            let block = &blocks[i];
             let chunk = &message_buffer_slice[i * 16..(i + 1) * 16];
             let y = u8to128(chunk) ^ u8to128(&block.as_slice());
             encrypted_message.extend_from_slice(&y.to_be_bytes());
@@ -125,6 +135,7 @@ impl $module {
     }
 
     fn update_integrality_buffer(&mut self) {
+        // self.integrality_buffer.clear();
         let integrality_buffer_slice = self.integrality_buffer.as_slice();
         let integrality_buffer_slice_len = integrality_buffer_slice.len();
         if integrality_buffer_slice_len >= 16 {

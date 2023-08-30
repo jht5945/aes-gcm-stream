@@ -17,10 +17,13 @@ pub use decryptor::Aes256GcmStreamDecryptor;
 pub use encryptor::Aes128GcmStreamEncryptor;
 pub use encryptor::Aes192GcmStreamEncryptor;
 pub use encryptor::Aes256GcmStreamEncryptor;
+pub use encryptor2::Aes256GcmStreamEncryptor2;
 
 mod util;
 mod encryptor;
 mod decryptor;
+
+mod encryptor2;
 
 #[test]
 fn test128() {
@@ -198,6 +201,7 @@ fn test256() {
     ];
 
     for (key, nonce, aad, plaintext) in knp {
+        println!("======= {} {} {} {}", hex::encode(key), hex::encode(nonce), hex::encode(aad), hex::encode(plaintext));
         // encrypt
         let mut ciphertext = vec![];
         let mut encryptor = Aes256GcmStreamEncryptor::new(key.clone(), &nonce);

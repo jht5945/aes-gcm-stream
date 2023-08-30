@@ -42,6 +42,7 @@ impl $module {
             message_len: 0,
         };
         let (ghash_key, normalized_nonce) = s.normalize_nonce(nonce);
+        println!("<<< KEY: {}", hex::encode(ghash_key.to_be_bytes()));
         s.ghash_key = ghash_key;
         s.init_nonce = normalized_nonce;
         s.encryption_nonce = normalized_nonce;
@@ -126,7 +127,9 @@ impl $module {
         let mut bs = self.init_nonce.to_be_bytes().clone();
         let block = Block::<$aesn>::from_mut_slice(&mut bs);
         self.crypto.encrypt_block(block);
+        println!("<<< final enc block: {}", hex::encode(&block.as_slice()));
         let tag_trunk = self.ghash_val.to_be_bytes();
+        println!("<<< final block: {}", hex::encode(&tag_trunk));
         let y = u8to128(&tag_trunk) ^ u8to128(&block.as_slice());
         y.to_be_bytes().to_vec()
     }
@@ -138,6 +141,7 @@ impl $module {
             let blocks_count = integrality_buffer_slice_len / 16;
             for i in 0..blocks_count {
                 let buf = &integrality_buffer_slice[i * 16..(i + 1) * 16];
+                println!("<<< block: {}", hex::encode(buf));
                 self.ghash_val = gmul_128(self.ghash_val ^ u8to128(buf), self.ghash_key)
             }
             self.integrality_buffer = integrality_buffer_slice[blocks_count * 16..].to_vec();
