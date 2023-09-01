@@ -22,8 +22,6 @@ mod util;
 mod encryptor;
 mod decryptor;
 
-mod encryptor2;
-
 #[test]
 fn test128() {
     use aes_gcm::{aead::{Aead, Nonce, Payload}, Aes128Gcm, KeyInit};
@@ -251,7 +249,7 @@ fn test256_stream() {
     // encrypt
     let mut ciphertext = vec![];
     let mut encryptor = Aes256GcmStreamEncryptor::new(key.clone(), &nonce);
-    for i in 0..1024 {
+    for i in 0..1025 {
         plaintext.extend_from_slice(&[(i % 128) as u8]);
         ciphertext.extend_from_slice(&encryptor.update(&[(i % 128) as u8]));
     }
