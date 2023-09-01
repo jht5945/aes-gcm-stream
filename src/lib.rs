@@ -198,6 +198,7 @@ fn test256() {
     ];
 
     for (key, nonce, aad, plaintext) in knp {
+        println!("======= {} {} {} {}", hex::encode(key), hex::encode(nonce), hex::encode(aad), hex::encode(plaintext));
         // encrypt
         let mut ciphertext = vec![];
         let mut encryptor = Aes256GcmStreamEncryptor::new(key.clone(), &nonce);
@@ -248,7 +249,7 @@ fn test256_stream() {
     // encrypt
     let mut ciphertext = vec![];
     let mut encryptor = Aes256GcmStreamEncryptor::new(key.clone(), &nonce);
-    for i in 0..1024 {
+    for i in 0..1025 {
         plaintext.extend_from_slice(&[(i % 128) as u8]);
         ciphertext.extend_from_slice(&encryptor.update(&[(i % 128) as u8]));
     }
