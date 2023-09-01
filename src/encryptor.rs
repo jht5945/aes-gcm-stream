@@ -1,9 +1,11 @@
 use aes::{Aes128, Aes192, Aes256};
 use aes::cipher::{Block, BlockEncrypt, KeyInit};
 use aes::cipher::generic_array::GenericArray;
-use zeroize::ZeroizeOnDrop;
+use ghash::GHash;
+use ghash::universal_hash::UniversalHash;
+use zeroize::Zeroize;
 
-use crate::util::{gmul_128, inc_32, msb_s, normalize_nonce, u8to128};
+use crate::util::{AesBlock, BLOCK_SIZE, inc_32, msb_s, normalize_nonce, u8to128};
 
 macro_rules! define_aes_gcm_stream_encryptor_impl {
     (
@@ -11,14 +13,10 @@ macro_rules! define_aes_gcm_stream_encryptor_impl {
         $aesn:tt,
         $key_size:tt
     ) => {
-
-#[derive(ZeroizeOnDrop)]
 pub struct $module {
-    crypto: $aesn,
+    cipher: $aesn,
     message_buffer: Vec<u8>,
-    integrality_buffer: Vec<u8>,
-    ghash_key: u128,
-    ghash_val: u128,
+    ghash: GHash,
     init_nonce: u128,
     encryption_nonce: u128,
     adata_len: usize,
@@ -30,128 +28,106 @@ impl $module {
         let key = GenericArray::from(key);
         let aes = $aesn::new(&key);
 
+        let mut ghash_key = ghash::Key::default();
+        aes.encrypt_block(&mut ghash_key);
+        let ghash = GHash::new(&ghash_key);
+        ghash_key.zeroize();
+
         let mut s = Self {
-            crypto: aes,
+            cipher: aes,
             message_buffer: vec![],
-            integrality_buffer: vec![],
-            ghash_key: 0,
-            ghash_val: 0,
+            ghash,
             init_nonce: 0,
             encryption_nonce: 0,
             adata_len: 0,
             message_len: 0,
         };
-        let (ghash_key, normalized_nonce) = s.normalize_nonce(nonce);
-        s.ghash_key = ghash_key;
+        let (_, normalized_nonce) = s.normalize_nonce(nonce);
         s.init_nonce = normalized_nonce;
         s.encryption_nonce = normalized_nonce;
         s
     }
 
     pub fn init_adata(&mut self, adata: &[u8]) {
-        self.integrality_buffer.extend_from_slice(adata);
-        self.adata_len += adata.len();
-
-        let adata_bit_len = self.adata_len * 8;
-        let v = 128 * ((adata_bit_len + 128 - 1) / 128) - adata_bit_len;
-        self.integrality_buffer.extend_from_slice(&vec![0x00; v / 8]);
+        if adata.len() > 0 {
+            self.adata_len += adata.len();
+            self.ghash.update_padded(adata);
+        }
     }
 
-    pub fn update(&mut self, bytes: &[u8]) -> Vec<u8> {
-        self.message_buffer.extend_from_slice(bytes);
+    pub fn update(&mut self, message: &[u8]) -> Vec<u8> {
+        self.message_buffer.extend_from_slice(message);
         let message_buffer_slice = self.message_buffer.as_slice();
-        let message_buffer_len = message_buffer_slice.len();
-        if message_buffer_len < 16 {
+        if message_buffer_slice.len() < BLOCK_SIZE {
             return Vec::with_capacity(0);
         }
-        let blocks_count = message_buffer_len / 16;
-        let mut encrypted_message = Vec::with_capacity(blocks_count * 16);
+        let blocks_count = message_buffer_slice.len() / BLOCK_SIZE;
         let mut blocks = Vec::with_capacity(blocks_count);
         for _ in 0..blocks_count {
             self.encryption_nonce = inc_32(self.encryption_nonce);
             let ctr = self.encryption_nonce.to_be_bytes();
-            let block = Block::<$aesn>::clone_from_slice(&ctr);
-            blocks.push(block);
+            blocks.push(Block::<AesBlock>::clone_from_slice(&ctr));
         }
-        // println!("block site: {}", blocks.len());
-            self.crypto.encrypt_blocks(&mut blocks);
-        for i in 0..blocks_count {
-            // self.encryption_nonce = inc_32(self.encryption_nonce);
-            // let mut ctr = self.encryption_nonce.to_be_bytes();
-            // let block = Block::<$aesn>::from_mut_slice(&mut ctr);
-            // self.crypto.encrypt_block(block);
-            let block = &blocks[i];
-            let chunk = &message_buffer_slice[i * 16..(i + 1) * 16];
-            let y = u8to128(chunk) ^ u8to128(&block.as_slice());
-            encrypted_message.extend_from_slice(&y.to_be_bytes());
-        }
-        self.message_buffer = message_buffer_slice[blocks_count * 16..].to_vec();
-        self.integrality_buffer.extend_from_slice(&encrypted_message);
-        self.message_len += encrypted_message.len();
+        self.cipher.encrypt_blocks(&mut blocks);
 
-        self.update_integrality_buffer();
+        let mut encrypted_message = message_buffer_slice[0..blocks_count * BLOCK_SIZE].to_vec();
+        for i in 0..blocks_count {
+            let chunk = &mut encrypted_message[i * BLOCK_SIZE..(i + 1) * BLOCK_SIZE];
+            let block = blocks[i].as_slice();
+            for k in 0..BLOCK_SIZE {
+                chunk[k] ^= block[k];
+            }
+        }
+        self.ghash.update_padded(&encrypted_message);
+        self.message_buffer = message_buffer_slice[blocks_count * BLOCK_SIZE..].to_vec();
+        self.message_len += encrypted_message.len();
 
         encrypted_message
     }
 
     pub fn finalize(&mut self) -> (Vec<u8>, Vec<u8>) {
-        let mut encrypted_message = Vec::with_capacity(16);
+        let mut final_encrypted_message = Vec::with_capacity(BLOCK_SIZE);
         if !self.message_buffer.is_empty() {
-            // last block and this block len is less than 128 bits
+            // last block and this block len may less than 128 bits (16 bytes)
             self.encryption_nonce = inc_32(self.encryption_nonce);
             let mut ctr = self.encryption_nonce.to_be_bytes();
-            let block = Block::<$aesn>::from_mut_slice(&mut ctr);
-            self.crypto.encrypt_block(block);
+            let block = Block::<AesBlock>::from_mut_slice(&mut ctr);
+            self.cipher.encrypt_block(block);
 
             let chunk = self.message_buffer.as_slice();
             let msb = msb_s(chunk.len() * 8, block.as_slice());
             let y = u8to128(chunk) ^ u8to128(&msb);
-            encrypted_message.extend_from_slice(&y.to_be_bytes()[16 - chunk.len()..16]);
-            self.integrality_buffer.extend_from_slice(&encrypted_message);
-            self.message_len += encrypted_message.len();
+            final_encrypted_message.extend_from_slice(&y.to_be_bytes()[16 - chunk.len()..16]);
+            self.ghash.update_padded(&final_encrypted_message);
+            self.message_len += final_encrypted_message.len();
         }
         let adata_bit_len = self.adata_len * 8;
         let message_bit_len = self.message_len * 8;
-        let u = 128 * ((message_bit_len + 128 - 1) / 128) - message_bit_len;
-        self.integrality_buffer.extend_from_slice(&vec![0x00; u / 8]);
-        self.integrality_buffer.extend_from_slice(&(adata_bit_len as u64).to_be_bytes());
-        self.integrality_buffer.extend_from_slice(&(message_bit_len as u64).to_be_bytes());
+        let mut adata_and_message_len = Vec::with_capacity(BLOCK_SIZE);
+        adata_and_message_len.extend_from_slice(&(adata_bit_len as u64).to_be_bytes());
+        adata_and_message_len.extend_from_slice(&(message_bit_len as u64).to_be_bytes());
+        self.ghash.update_padded(&adata_and_message_len);
 
-        self.update_integrality_buffer();
-        assert!(self.integrality_buffer.is_empty());
 
-        let tag = self.calculate_tag();
+        let tag = self.compute_tag();
 
-        (encrypted_message, tag)
+        (final_encrypted_message, tag)
     }
 
-    fn calculate_tag(&mut self) -> Vec<u8> {
+    fn compute_tag(&mut self) -> Vec<u8> {
         let mut bs = self.init_nonce.to_be_bytes().clone();
-        let block = Block::<$aesn>::from_mut_slice(&mut bs);
-        self.crypto.encrypt_block(block);
-        let tag_trunk = self.ghash_val.to_be_bytes();
+        let block = Block::<AesBlock>::from_mut_slice(&mut bs);
+        self.cipher.encrypt_block(block);
+        let ghash = self.ghash.clone().finalize();
+        let tag_trunk = ghash.as_slice();
         let y = u8to128(&tag_trunk) ^ u8to128(&block.as_slice());
         y.to_be_bytes().to_vec()
     }
 
-    fn update_integrality_buffer(&mut self) {
-        // self.integrality_buffer.clear();
-        let integrality_buffer_slice = self.integrality_buffer.as_slice();
-        let integrality_buffer_slice_len = integrality_buffer_slice.len();
-        if integrality_buffer_slice_len >= 16 {
-            let blocks_count = integrality_buffer_slice_len / 16;
-            for i in 0..blocks_count {
-                let buf = &integrality_buffer_slice[i * 16..(i + 1) * 16];
-                self.ghash_val = gmul_128(self.ghash_val ^ u8to128(buf), self.ghash_key)
-            }
-            self.integrality_buffer = integrality_buffer_slice[blocks_count * 16..].to_vec();
-        }
-    }
-
     fn ghash_key(&mut self) -> u128 {
-        let mut block = [0u8; 16];
-        let block = Block::<$aesn>::from_mut_slice(&mut block);
-        self.crypto.encrypt_block(block);
+        let mut block = [0u8; BLOCK_SIZE];
+        let block = Block::<AesBlock>::from_mut_slice(&mut block);
+        self.cipher.encrypt_block(block);
         u8to128(&block.as_slice())
     }
 

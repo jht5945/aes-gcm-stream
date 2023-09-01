@@ -1,3 +1,15 @@
+use cipher::BlockSizeUser;
+use cipher::consts::U16;
+
+pub(crate) struct AesBlock {}
+
+impl BlockSizeUser for AesBlock {
+    type BlockSize = U16;
+}
+
+pub(crate) const BLOCK_SIZE: usize = 16;
+
+
 // R = 11100001 || 0(120)
 const R: u128 = 0b11100001 << 120;
 

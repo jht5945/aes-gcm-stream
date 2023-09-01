@@ -17,7 +17,6 @@ pub use decryptor::Aes256GcmStreamDecryptor;
 pub use encryptor::Aes128GcmStreamEncryptor;
 pub use encryptor::Aes192GcmStreamEncryptor;
 pub use encryptor::Aes256GcmStreamEncryptor;
-pub use encryptor2::Aes256GcmStreamEncryptor2;
 
 mod util;
 mod encryptor;

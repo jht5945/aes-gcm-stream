@@ -1,27 +1,16 @@
 use aes::Aes256;
-use aes::cipher::{Block, BlockEncrypt, BlockSizeUser, KeyInit};
-use aes::cipher::consts::U16;
+use aes::cipher::{Block, BlockEncrypt, KeyInit};
 use aes::cipher::generic_array::GenericArray;
 use ghash::GHash;
 use ghash::universal_hash::UniversalHash;
 use zeroize::Zeroize;
 
-use crate::util::{inc_32, msb_s, normalize_nonce, u8to128};
+use crate::util::{AesBlock, BLOCK_SIZE, inc_32, msb_s, normalize_nonce, u8to128};
 
-struct AesBlock {}
-
-impl BlockSizeUser for AesBlock {
-    type BlockSize = U16;
-}
-
-const BLOCK_SIZE: usize = 16;
-
-// #[derive(ZeroizeOnDrop)]
 pub struct Aes256GcmStreamEncryptor2 {
     cipher: Aes256,
     message_buffer: Vec<u8>,
     ghash: GHash,
-    ghash_key: u128,
     init_nonce: u128,
     encryption_nonce: u128,
     adata_len: usize,
@@ -42,14 +31,12 @@ impl Aes256GcmStreamEncryptor2 {
             cipher: aes,
             message_buffer: vec![],
             ghash,
-            ghash_key: 0,
             init_nonce: 0,
             encryption_nonce: 0,
             adata_len: 0,
             message_len: 0,
         };
-        let (ghash_key, normalized_nonce) = s.normalize_nonce(nonce);
-        s.ghash_key = ghash_key;
+        let (_, normalized_nonce) = s.normalize_nonce(nonce);
         s.init_nonce = normalized_nonce;
         s.encryption_nonce = normalized_nonce;
         s
