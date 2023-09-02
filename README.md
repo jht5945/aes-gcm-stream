@@ -36,4 +36,6 @@ Plaintext: Hello  World!
 ```
 
 
-> Thanks: https://developer.aliyun.com/article/952809
+> Thanks:
+> * https://developer.aliyun.com/article/952809
+> * https://crates.io/crates/aes-gcm
