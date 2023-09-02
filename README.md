@@ -1,5 +1,6 @@
 # aes-gcm-stream
 
+[Crates](https://crates.io/crates/aes-gcm-stream)
 [Document](https://docs.rs/aes-gcm-stream/)
 
 ## Encrypt
