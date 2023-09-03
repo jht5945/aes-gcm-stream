@@ -35,6 +35,16 @@ Ciphertext: 86c22c5122404b39683ca9b79b889fd00a6212d1be2ebc3f4f8f22f90b
 Plaintext: Hello  World!
 ```
 
+Benchmark @MacBook Pro (Retina, 15-inch, Late 2013/2 GHz Quad-Core Intel Core i7)
+```text
+$ cargo run --release --example bench
+AES128 encrypt         : 483.04 M/s
+AES192 encrypt         : 466.22 M/s
+AES256 encrypt         : 451.38 M/s
+AES256 en/decrypt      : 222.66 M/s
+AES256 encrypt aes-gcm : 547.63 M/s
+```
+
 
 > Thanks:
 > * https://developer.aliyun.com/article/952809
