@@ -1,3 +1,5 @@
+use zeroize::Zeroize;
+
 /// This library is created for AES/GCM stream encrypt or decrypt
 ///
 /// Structs for encryption:
@@ -21,6 +23,87 @@ pub use encryptor::Aes256GcmStreamEncryptor;
 mod util;
 mod encryptor;
 mod decryptor;
+
+pub fn aes_gcm_encrypt(key: &[u8], nonce: &[u8], message: &[u8]) -> Result<Vec<u8>, String> {
+    match key.len() {
+        16 => aes_128_gcm_encrypt(key, nonce, message),
+        24 => aes_192_gcm_encrypt(key, nonce, message),
+        32 => aes_256_gcm_encrypt(key, nonce, message),
+        _ => Err(format!("Bad key length")),
+    }
+}
+
+pub fn aes_gcm_decrypt(key: &[u8], nonce: &[u8], message: &[u8]) -> Result<Vec<u8>, String> {
+    match key.len() {
+        16 => aes_128_gcm_decrypt(key, nonce, message),
+        24 => aes_192_gcm_decrypt(key, nonce, message),
+        32 => aes_256_gcm_decrypt(key, nonce, message),
+        _ => Err(format!("Bad key length")),
+    }
+}
+
+pub fn aes_128_gcm_decrypt(key: &[u8], nonce: &[u8], message: &[u8]) -> Result<Vec<u8>, String> {
+    let mut key: [u8; 16] = key.try_into().map_err(|_| format!("Bad key length"))?;
+    let mut gcm_stream = Aes128GcmStreamDecryptor::new(key, nonce);
+    let mut first_block = gcm_stream.update(message);
+    let final_block = gcm_stream.finalize()?;
+    first_block.extend_from_slice(&final_block);
+    key.zeroize();
+    Ok(first_block)
+}
+
+pub fn aes_192_gcm_decrypt(key: &[u8], nonce: &[u8], message: &[u8]) -> Result<Vec<u8>, String> {
+    let mut key: [u8; 24] = key.try_into().map_err(|_| format!("Bad key length"))?;
+    let mut gcm_stream = Aes192GcmStreamDecryptor::new(key, nonce);
+    let mut first_block = gcm_stream.update(message);
+    let final_block = gcm_stream.finalize()?;
+    first_block.extend_from_slice(&final_block);
+    key.zeroize();
+    Ok(first_block)
+}
+
+pub fn aes_256_gcm_decrypt(key: &[u8], nonce: &[u8], message: &[u8]) -> Result<Vec<u8>, String> {
+    let mut key: [u8; 32] = key.try_into().map_err(|_| format!("Bad key length"))?;
+    let mut gcm_stream = Aes256GcmStreamDecryptor::new(key, nonce);
+    let mut first_block = gcm_stream.update(message);
+    let final_block = gcm_stream.finalize()?;
+    first_block.extend_from_slice(&final_block);
+    key.zeroize();
+    Ok(first_block)
+}
+
+pub fn aes_128_gcm_encrypt(key: &[u8], nonce: &[u8], message: &[u8]) -> Result<Vec<u8>, String> {
+    let mut key: [u8; 16] = key.try_into().map_err(|_| format!("Bad key length"))?;
+    let mut gcm_stream = Aes128GcmStreamEncryptor::new(key, nonce);
+    let mut first_block = gcm_stream.update(message);
+    let (last_block, tag) = gcm_stream.finalize();
+    first_block.extend_from_slice(&last_block);
+    first_block.extend_from_slice(&tag);
+    key.zeroize();
+    Ok(first_block)
+}
+
+pub fn aes_192_gcm_encrypt(key: &[u8], nonce: &[u8], message: &[u8]) -> Result<Vec<u8>, String> {
+    let mut key: [u8; 24] = key.try_into().map_err(|_| format!("Bad key length"))?;
+    let mut gcm_stream = Aes192GcmStreamEncryptor::new(key, nonce);
+    let mut first_block = gcm_stream.update(message);
+    let (last_block, tag) = gcm_stream.finalize();
+    first_block.extend_from_slice(&last_block);
+    first_block.extend_from_slice(&tag);
+    key.zeroize();
+    Ok(first_block)
+}
+
+pub fn aes_256_gcm_encrypt(key: &[u8], nonce: &[u8], message: &[u8]) -> Result<Vec<u8>, String> {
+    let mut key: [u8; 32] = key.try_into().map_err(|_| format!("Bad key length"))?;
+    let mut gcm_stream = Aes256GcmStreamEncryptor::new(key, nonce);
+    let mut first_block = gcm_stream.update(message);
+    let (last_block, tag) = gcm_stream.finalize();
+    first_block.extend_from_slice(&last_block);
+    first_block.extend_from_slice(&tag);
+    key.zeroize();
+    Ok(first_block)
+}
 
 #[test]
 fn test128() {
@@ -278,4 +361,88 @@ fn test256_stream() {
     }
     let decrypted_plaintext = cipher.decrypt(&decrypt_nonce, ciphertext.as_slice()).expect("decrypt1");
     assert_eq!(plaintext, decrypted_plaintext.as_slice());
+}
+
+#[test]
+fn test128_stream_and_array() {
+    let key = [0u8; 16];
+    let nonce = [0; 12];
+
+    let mut plaintext = vec![];
+    // encrypt
+    let mut ciphertext = vec![];
+    let mut encryptor = Aes128GcmStreamEncryptor::new(key.clone(), &nonce);
+    for i in 0..1025 {
+        plaintext.extend_from_slice(&[(i % 128) as u8]);
+        ciphertext.extend_from_slice(&encryptor.update(&[(i % 128) as u8]));
+    }
+    let (last_block, tag) = encryptor.finalize();
+    ciphertext.extend_from_slice(&last_block);
+    ciphertext.extend_from_slice(&tag);
+
+    let encrypted = aes_128_gcm_encrypt(&key, &nonce, &plaintext).unwrap();
+    let decrypted = aes_128_gcm_decrypt(&key, &nonce, &ciphertext).unwrap();
+    assert_eq!(ciphertext, encrypted);
+    assert_eq!(plaintext, decrypted);
+
+    let encrypted = aes_gcm_encrypt(&key, &nonce, &plaintext).unwrap();
+    let decrypted = aes_gcm_decrypt(&key, &nonce, &ciphertext).unwrap();
+    assert_eq!(ciphertext, encrypted);
+    assert_eq!(plaintext, decrypted);
+}
+
+#[test]
+fn test192_stream_and_array() {
+    let key = [0u8; 24];
+    let nonce = [0; 12];
+
+    let mut plaintext = vec![];
+    // encrypt
+    let mut ciphertext = vec![];
+    let mut encryptor = Aes192GcmStreamEncryptor::new(key.clone(), &nonce);
+    for i in 0..1025 {
+        plaintext.extend_from_slice(&[(i % 128) as u8]);
+        ciphertext.extend_from_slice(&encryptor.update(&[(i % 128) as u8]));
+    }
+    let (last_block, tag) = encryptor.finalize();
+    ciphertext.extend_from_slice(&last_block);
+    ciphertext.extend_from_slice(&tag);
+
+    let encrypted = aes_192_gcm_encrypt(&key, &nonce, &plaintext).unwrap();
+    let decrypted = aes_192_gcm_decrypt(&key, &nonce, &ciphertext).unwrap();
+    assert_eq!(ciphertext, encrypted);
+    assert_eq!(plaintext, decrypted);
+
+    let encrypted = aes_gcm_encrypt(&key, &nonce, &plaintext).unwrap();
+    let decrypted = aes_gcm_decrypt(&key, &nonce, &ciphertext).unwrap();
+    assert_eq!(ciphertext, encrypted);
+    assert_eq!(plaintext, decrypted);
+}
+
+#[test]
+fn test256_stream_and_array() {
+    let key = [0u8; 32];
+    let nonce = [0; 12];
+
+    let mut plaintext = vec![];
+    // encrypt
+    let mut ciphertext = vec![];
+    let mut encryptor = Aes256GcmStreamEncryptor::new(key.clone(), &nonce);
+    for i in 0..1025 {
+        plaintext.extend_from_slice(&[(i % 128) as u8]);
+        ciphertext.extend_from_slice(&encryptor.update(&[(i % 128) as u8]));
+    }
+    let (last_block, tag) = encryptor.finalize();
+    ciphertext.extend_from_slice(&last_block);
+    ciphertext.extend_from_slice(&tag);
+
+    let encrypted = aes_256_gcm_encrypt(&key, &nonce, &plaintext).unwrap();
+    let decrypted = aes_256_gcm_decrypt(&key, &nonce, &ciphertext).unwrap();
+    assert_eq!(ciphertext, encrypted);
+    assert_eq!(plaintext, decrypted);
+
+    let encrypted = aes_gcm_encrypt(&key, &nonce, &plaintext).unwrap();
+    let decrypted = aes_gcm_decrypt(&key, &nonce, &ciphertext).unwrap();
+    assert_eq!(ciphertext, encrypted);
+    assert_eq!(plaintext, decrypted);
 }

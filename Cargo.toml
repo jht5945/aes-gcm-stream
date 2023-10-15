@@ -1,6 +1,6 @@
 [package]
 name = "aes-gcm-stream"
-version = "0.2.0"
+version = "0.2.2"
 edition = "2021"
 authors = ["Hatter Jiang"]
 repository = "https://git.hatter.ink/hatter/aes-gcm-stream"
