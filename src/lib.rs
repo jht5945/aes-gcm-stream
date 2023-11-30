@@ -109,18 +109,18 @@ pub fn aes_256_gcm_encrypt(key: &[u8], nonce: &[u8], message: &[u8]) -> Result<V
 fn test128() {
     use aes_gcm::{aead::{Aead, Nonce, Payload}, Aes128Gcm, KeyInit};
     let knp = vec![
-        ([0; 16], [0; 12], &[] as &[u8], b"Hello World!" as &[u8]),
-        ([0; 16], [0; 12], &[1; 16], b"Hello World!" as &[u8]),
-        ([0; 16], [0; 12], &[1; 17], b"Hello World!" as &[u8]),
-        ([0; 16], [0; 12], &[1; 32], b"Hello World!" as &[u8]),
-        ([0; 16], [0; 12], &[1; 64], b"Hello World!" as &[u8]),
-        ([0; 16], [0; 12], &[1, 2, 3], b"Hello World!" as &[u8]),
+        ([1; 16], [0; 12], &[] as &[u8], b"Hello World!" as &[u8]),
+        ([2; 16], [0; 12], &[1; 16], b"Hello World!" as &[u8]),
+        ([3; 16], [0; 12], &[1; 17], b"Hello World!" as &[u8]),
+        ([4; 16], [0; 12], &[1; 32], b"Hello World!" as &[u8]),
+        ([5; 16], [0; 12], &[1; 64], b"Hello World!" as &[u8]),
+        ([6; 16], [0; 12], &[1, 2, 3], b"Hello World!" as &[u8]),
         ([1; 16], [0; 12], &[], b"Hello World!"),
-        ([0; 16], [1; 12], &[], b"Hello World!"),
+        ([7; 16], [1; 12], &[], b"Hello World!"),
         ([1; 16], [1; 12], &[], b"Hello World ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!"),
         ([1; 16], [1; 12], &[0; 129], b"Hello World ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!"),
         ([0xff; 16], [0; 12], &[], b"Hello World!"),
-        ([0; 16], [0xff; 12], &[], b"Hello World!"),
+        ([8; 16], [0xff; 12], &[], b"Hello World!"),
         ([0xff; 16], [0xff; 12], &[], b"Hello World ~~~~~~~~~~~~~~~~~\
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\
@@ -185,18 +185,18 @@ fn test128() {
 #[test]
 fn test192() {
     let knp = vec![
-        ([0; 24], [0; 12], &[] as &[u8], b"Hello World!" as &[u8]),
-        ([0; 24], [0; 12], &[1; 16], b"Hello World!" as &[u8]),
-        ([0; 24], [0; 12], &[1; 17], b"Hello World!" as &[u8]),
-        ([0; 24], [0; 12], &[1; 32], b"Hello World!" as &[u8]),
-        ([0; 24], [0; 12], &[1; 64], b"Hello World!" as &[u8]),
-        ([0; 24], [0; 12], &[1, 2, 3], b"Hello World!" as &[u8]),
+        ([1; 24], [0; 12], &[] as &[u8], b"Hello World!" as &[u8]),
+        ([2; 24], [0; 12], &[1; 16], b"Hello World!" as &[u8]),
+        ([3; 24], [0; 12], &[1; 17], b"Hello World!" as &[u8]),
+        ([4; 24], [0; 12], &[1; 32], b"Hello World!" as &[u8]),
+        ([5; 24], [0; 12], &[1; 64], b"Hello World!" as &[u8]),
+        ([6; 24], [0; 12], &[1, 2, 3], b"Hello World!" as &[u8]),
         ([1; 24], [0; 12], &[], b"Hello World!"),
-        ([0; 24], [1; 12], &[], b"Hello World!"),
+        ([8; 24], [1; 12], &[], b"Hello World!"),
         ([1; 24], [1; 12], &[], b"Hello World ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!"),
         ([1; 24], [1; 12], &[0; 129], b"Hello World ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!"),
         ([0xff; 24], [0; 12], &[], b"Hello World!"),
-        ([0; 24], [0xff; 12], &[], b"Hello World!"),
+        ([9; 24], [0xff; 12], &[], b"Hello World!"),
         ([0xff; 24], [0xff; 12], &[], b"Hello World ~~~~~~~~~~~~~~~~~\
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\
@@ -247,18 +247,18 @@ fn test192() {
 fn test256() {
     use aes_gcm::{aead::{Aead, Nonce, Payload}, Aes256Gcm, KeyInit};
     let knp = vec![
-        ([0; 32], [0; 12], &[] as &[u8], b"Hello World!" as &[u8]),
-        ([0; 32], [0; 12], &[1; 16], b"Hello World!" as &[u8]),
-        ([0; 32], [0; 12], &[1; 17], b"Hello World!" as &[u8]),
-        ([0; 32], [0; 12], &[1; 32], b"Hello World!" as &[u8]),
-        ([0; 32], [0; 12], &[1; 64], b"Hello World!" as &[u8]),
-        ([0; 32], [0; 12], &[1, 2, 3], b"Hello World!" as &[u8]),
+        ([1; 32], [0; 12], &[] as &[u8], b"Hello World!" as &[u8]),
+        ([2; 32], [0; 12], &[1; 16], b"Hello World!" as &[u8]),
+        ([3; 32], [0; 12], &[1; 17], b"Hello World!" as &[u8]),
+        ([4; 32], [0; 12], &[1; 32], b"Hello World!" as &[u8]),
+        ([5; 32], [0; 12], &[1; 64], b"Hello World!" as &[u8]),
+        ([6; 32], [0; 12], &[1, 2, 3], b"Hello World!" as &[u8]),
         ([1; 32], [0; 12], &[], b"Hello World!"),
-        ([0; 32], [1; 12], &[], b"Hello World!"),
+        ([7; 32], [1; 12], &[], b"Hello World!"),
         ([1; 32], [1; 12], &[], b"Hello World ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!"),
         ([1; 32], [1; 12], &[0; 129], b"Hello World ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!"),
         ([0xff; 32], [0; 12], &[], b"Hello World!"),
-        ([0; 32], [0xff; 12], &[], b"Hello World!"),
+        ([8; 32], [0xff; 12], &[], b"Hello World!"),
         ([0xff; 32], [0xff; 12], &[], b"Hello World ~~~~~~~~~~~~~~~~~\
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\
@@ -445,4 +445,25 @@ fn test256_stream_and_array() {
     let decrypted = aes_gcm_decrypt(&key, &nonce, &ciphertext).unwrap();
     assert_eq!(ciphertext, encrypted);
     assert_eq!(plaintext, decrypted);
+}
+
+#[test]
+fn test125_ab_nonce() {
+    let key = hex::decode("faf6a891866fac550ef548b4e5f6fbc98fccc6827cd943cc8d7539747f1d87bd").unwrap();
+    let key: [u8; 32] = key.try_into().map_err(|_| format!("Bad key length")).unwrap();
+    let nonce = hex::decode("cea500817694e16e734f07df422f6f52582d844e623746a96c5fbb4be2a38a6e").unwrap();
+    let ciphertext = hex::decode("c52dadf683c02e81d842f6563b").unwrap();
+    let tag = hex::decode("cc9062944525de37d3aa588c6a5676a2").unwrap();
+    let aad = b"firstName:";
+
+    let mut gcm_stream = Aes256GcmStreamDecryptor::new(key, &nonce);
+    gcm_stream.init_adata(&aad[..]);
+    let mut first_block = gcm_stream.update(&ciphertext);
+    let second_block = gcm_stream.update(&tag);
+    let final_block = gcm_stream.finalize().unwrap();
+
+    first_block.extend_from_slice(&second_block);
+    first_block.extend_from_slice(&final_block);
+
+    assert_eq!("John --- TEST", String::from_utf8(first_block).unwrap());
 }

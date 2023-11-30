@@ -39,18 +39,29 @@ pub(crate) fn ghash(key: u128, messages: &[u128]) -> u128 {
 }
 
 pub(crate) fn normalize_nonce(ghash_key: u128, nonce_bytes: &[u8]) -> (u128, u128) {
-    let nonce = u8to128(nonce_bytes);
     let normalized_nonce = match nonce_bytes.len() == 12 {
         true => {
+            let nonce = u8to128(nonce_bytes);
             nonce << 32 | 0x00000001
         }
         false => {
             let mut iv_padding = vec![];
-            // s = 128[len(iv) / 128] - len(iv)
-            let s = 128 * (((nonce_bytes.len() * 8) + 128 - 1) / 128) - (nonce_bytes.len() * 8);
-            iv_padding.push(nonce << s);
-            iv_padding.push((nonce_bytes.len() * 8) as u128);
-            ghash(ghash_key, &iv_padding)
+            iv_padding.extend_from_slice(nonce_bytes);
+            let left_len = nonce_bytes.len() - 16 * (nonce_bytes.len() / 16);
+            let tobe_padding_len = if left_len == 0 { 0 } else { 16 - left_len };
+            for _ in 0..tobe_padding_len { iv_padding.push(0); }
+
+            let mut block = ghash::Block::default();
+            let nonce_bits = (nonce_bytes.len() as u64) * 8;
+            block[8..].copy_from_slice(&nonce_bits.to_be_bytes());
+            iv_padding.extend_from_slice(block.as_slice());
+
+            let mut iv_padding_u128 = vec![];
+            let block_count = iv_padding.len() / 16;
+            for i in 0..block_count {
+                iv_padding_u128.push(u8to128(&iv_padding[i * 16..(i + 1) * 16]));
+            }
+            ghash(ghash_key, &iv_padding_u128)
         }
     };
     (ghash_key, normalized_nonce)
@@ -81,4 +92,30 @@ pub(crate) fn inc_32(bits: u128) -> u128 {
     let mut lsb = (bits & 0xffffffff) as u32;
     lsb = lsb.wrapping_add(1);
     msb << 32 | lsb as u128
+}
+
+#[test]
+fn test_normalize_nonce() {
+    use aes_gcm::KeyInit;
+    use ghash::Key;
+    use ghash::GHash;
+    use ghash::universal_hash::UniversalHash;
+    let ghash_key = [1u8; 16];
+    let key = Key::from(ghash_key);
+    let mut ghash = GHash::new(&key);
+
+    let nonce = [1u8; 22];
+    ghash.update_padded(&nonce);
+
+    let mut block = ghash::Block::default();
+    let nonce_bits = (nonce.len() as u64) * 8;
+    block[8..].copy_from_slice(&nonce_bits.to_be_bytes());
+    ghash.update(&[block]);
+    let final_nonce = ghash.finalize();
+    let final_nonce_bytes = final_nonce.as_slice();
+    let final_nonce1 = u8to128(final_nonce_bytes);
+
+    let (_, final_nonce2) = normalize_nonce(u8to128(&ghash_key), &nonce);
+
+    assert_eq!(final_nonce1, final_nonce2);
 }
